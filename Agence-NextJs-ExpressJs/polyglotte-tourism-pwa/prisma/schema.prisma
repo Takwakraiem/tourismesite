@@ -1,0 +1,234 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  email     String   @unique
+  name      String?
+  password  String
+  role      Role     @default(USER)
+  country   String?
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  reviews     Review[]
+  messages    Message[]
+  likes       ProgramLike[]
+  comments    Comment[]
+
+  @@map("users")
+}
+
+model Country {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String   @unique
+  slug        String   @unique
+  description String
+  image       String
+  gradient    String
+
+  programs Program[]
+  guides   Guide[]
+
+  @@map("countries")
+}
+
+model Program {
+  id                String         @id @default(auto()) @map("_id") @db.ObjectId
+  title             String
+  slug              String         @unique
+  description       String
+  shortDescription  String?
+  location          String
+  duration          String
+  price             Float
+  maxParticipants   Int            @default(12)
+  rating            Float          @default(0)
+  totalReviews      Int            @default(0)
+  views             Int            @default(0)
+  status            ProgramStatus  @default(DRAFT)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  countryId String
+  country   Country @relation(fields: [countryId], references: [id])
+
+  images      ProgramImage[]
+  itinerary   ItineraryDay[]
+  includes    ProgramInclude[]
+
+  reviews     Review[]
+  likes       ProgramLike[]
+  comments    Comment[]
+  guides      ProgramGuide[]
+
+  @@map("programs")
+}
+
+model ProgramImage {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  url       String
+  alt       String?
+  order     Int      @default(0)
+
+  programId String
+  program   Program @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@map("program_images")
+}
+
+model ItineraryDay {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  day         Int
+  title       String
+  description String
+
+  programId String
+  program   Program @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@map("itinerary_days")
+}
+
+model ProgramInclude {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  description String
+
+  programId String
+  program   Program @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@map("program_includes")
+}
+
+model Guide {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  name         String
+  email        String   @unique
+  specialty    String
+  bio          String?
+  avatar       String?
+  rating       Float    @default(0)
+  totalReviews Int      @default(0)
+  experience   Int      @default(0)
+  languages    String[]
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  countryId String
+  country   Country @relation(fields: [countryId], references: [id])
+
+  programs  ProgramGuide[]
+  reviews   GuideReview[]
+
+  @@map("guides")
+}
+
+model ProgramGuide {
+  id        String @id @default(auto()) @map("_id") @db.ObjectId
+  programId String
+  guideId   String
+
+  program Program @relation(fields: [programId], references: [id], onDelete: Cascade)
+  guide   Guide   @relation(fields: [guideId], references: [id], onDelete: Cascade)
+
+  @@map("program_guides")
+}
+
+
+model Review {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  rating    Int
+  comment   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId    String
+  user      User    @relation(fields: [userId], references: [id])
+  programId String
+  program   Program @relation(fields: [programId], references: [id])
+
+  @@map("reviews")
+}
+
+model GuideReview {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  rating    Int
+  comment   String
+  createdAt DateTime @default(now())
+
+  userId  String
+  guideId String
+  guide   Guide @relation(fields: [guideId], references: [id])
+
+  @@map("guide_reviews")
+}
+
+model ProgramLike {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String
+  programId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  program Program @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@map("program_likes")
+}
+
+model Comment {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId    String
+  user      User    @relation(fields: [userId], references: [id])
+  programId String
+  program   Program @relation(fields: [programId], references: [id])
+
+  @@map("comments")
+}
+
+model Message {
+  id        String      @id @default(auto()) @map("_id") @db.ObjectId
+  content   String
+  isRead    Boolean     @default(false)
+  sender    MessageSender
+  createdAt DateTime    @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@map("messages")
+}
+
+model Newsletter {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  email     String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@map("newsletter")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum ProgramStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum MessageSender {
+  USER
+  ADMIN
+}
